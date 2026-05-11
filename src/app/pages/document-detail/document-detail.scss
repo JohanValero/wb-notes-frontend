@@ -204,6 +204,22 @@
   svg { display: block; }
 }
 
+.chat-fab {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  &.is-open {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
 .save-fab {
   background: var(--accent);
   color: #fff;

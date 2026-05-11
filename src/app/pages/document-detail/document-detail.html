@@ -98,6 +98,16 @@
 
     <div class="fab-row">
       <button
+        class="fab-btn chat-fab"
+        [class.is-open]="chatOpen()"
+        (click)="toggleChat()"
+        title="Chat IA"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </button>
+      <button
         class="fab-btn save-fab"
         [class.has-changes]="!saved()"
         [disabled]="saving()"
@@ -126,3 +136,10 @@
     }
   </div>
 </div>
+
+@if (chatOpen()) {
+  <app-chat-panel
+    [documentUuid]="docUuid()"
+    (close)="toggleChat()"
+  />
+}

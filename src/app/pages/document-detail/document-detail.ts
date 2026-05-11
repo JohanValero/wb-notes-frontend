@@ -7,6 +7,7 @@ import { Document } from '../../models/document.model'
 import { Fragment } from '../../models/fragment.model'
 import { TiptapEditorComponent } from '../../components/tiptap-editor/tiptap-editor'
 import { DocListPanelComponent } from '../../components/doc-list-panel/doc-list-panel'
+import { ChatPanelComponent } from '../../components/chat-panel/chat-panel'
 
 const PANEL_WIDTH_KEY = 'doc-panel-width'
 const PANEL_COLLAPSED_KEY = 'doc-panel-collapsed'
@@ -77,7 +78,7 @@ export function extractBlocks(html: string, fragments?: Fragment[]): SyncItem[] 
 
 @Component({
   selector: 'app-document-detail',
-  imports: [TiptapEditorComponent, DocListPanelComponent],
+  imports: [TiptapEditorComponent, DocListPanelComponent, ChatPanelComponent],
   templateUrl: './document-detail.html',
   styleUrl: './document-detail.scss',
 })
@@ -99,6 +100,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   panelWidth = signal(Number(localStorage.getItem(PANEL_WIDTH_KEY)) || DEFAULT_PANEL_WIDTH)
   isResizing = false
   showFormatBar = signal(false)
+  chatOpen = signal(false)
 
   constructor(
     private route: ActivatedRoute,
@@ -173,6 +175,10 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
 
   toggleFormatBar() {
     this.showFormatBar.update((v) => !v)
+  }
+
+  toggleChat() {
+    this.chatOpen.update((v) => !v)
   }
 
   execFmt(fn: (chain: ReturnType<TiptapEditorComponent['editor']['chain']>) => unknown) {
