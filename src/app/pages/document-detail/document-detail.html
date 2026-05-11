@@ -1,0 +1,52 @@
+<div class="page">
+  @let doc = document();
+
+  <div class="page-header">
+    <a class="back" [routerLink]="['/workspaces', doc?.workspace_uuid]">&larr; Volver al workspace</a>
+    <h1>{{ doc?.title ?? 'Cargando...' }}</h1>
+    @if (doc) {
+      <div class="doc-meta">
+        <span class="badge type-{{ doc.doc_type.toLowerCase() }}">{{ doc.doc_type }}</span>
+        <span class="badge status-{{ doc.doc_status.toLowerCase() }}">{{ docStatusLabel(doc.doc_status) }}</span>
+        <span class="badge source">{{ doc.source }}</span>
+        @if (doc.is_dirty) {
+          <span class="badge dirty">modificado</span>
+        }
+      </div>
+      <div class="status-actions">
+        <span class="label">Estado:</span>
+        <button class="btn btn-sm" [class.active]="doc.doc_status === 'DRAFT'" (click)="changeStatus('DRAFT')">Borrador</button>
+        <button class="btn btn-sm" [class.active]="doc.doc_status === 'ACTIVE'" (click)="changeStatus('ACTIVE')">Activo</button>
+        <button class="btn btn-sm" [class.active]="doc.doc_status === 'ABANDONED'" (click)="changeStatus('ABANDONED')">Abandonado</button>
+        <button class="btn btn-sm" [class.active]="doc.doc_status === 'ARCHIVED'" (click)="changeStatus('ARCHIVED')">Archivado</button>
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading">Cargando...</div>
+  } @else {
+    <div class="editor-section">
+      <div class="editor-toolbar">
+        <span class="editor-info">{{ fragments().length }} párrafo{{ fragments().length !== 1 ? 's' : '' }}</span>
+        @if (saved()) {
+          <span class="save-indicator saved">Guardado</span>
+        }
+        <button class="btn btn-primary btn-sm" [disabled]="saving()" (click)="saveDocument()">
+          @if (saving()) {
+            Guardando...
+          } @else {
+            Guardar cambios
+          }
+        </button>
+      </div>
+      <app-tiptap-editor
+        [content]="editorHtml()"
+        (contentChange)="onContentChange($event)"
+      />
+      <div class="editor-footer">
+        <span class="editor-hint">Enter = nuevo párrafo | Shift+Enter = salto de línea</span>
+      </div>
+    </div>
+  }
+</div>

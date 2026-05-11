@@ -1,0 +1,48 @@
+<div class="page">
+  <div class="page-header">
+    <h1>Workspaces</h1>
+    <button class="btn btn-primary" (click)="startCreate()">+ Nuevo</button>
+  </div>
+
+  @if (showForm()) {
+    <div class="form-card">
+      <h3>{{ editingId() ? 'Editar' : 'Crear' }} Workspace</h3>
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" [(ngModel)]="formName" placeholder="Nombre del workspace" />
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <textarea [(ngModel)]="formDescription" placeholder="Descripción opcional" rows="2"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="save()">Guardar</button>
+        <button class="btn btn-ghost" (click)="cancelForm()">Cancelar</button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading">Cargando...</div>
+  } @else if (workspaces().length === 0) {
+    <div class="empty">No hay workspaces. Crea uno para empezar.</div>
+  } @else {
+    <div class="card-grid">
+      @for (w of workspaces(); track w.uuid) {
+        <div class="card" [routerLink]="['/workspaces', w.uuid]">
+          <div class="card-body">
+            <h3>{{ w.name }}</h3>
+            @if (w.description) {
+              <p>{{ w.description }}</p>
+            }
+            <span class="card-date">Creado {{ w.created_t | date:'medium' }}</span>
+          </div>
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <button class="btn btn-sm" (click)="startEdit(w)">Editar</button>
+            <button class="btn btn-sm btn-danger" (click)="delete(w.uuid)">Eliminar</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

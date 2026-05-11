@@ -1,0 +1,81 @@
+<div class="page">
+  @let ws = workspace();
+
+  <div class="page-header">
+    <div>
+      <a class="back" routerLink="/workspaces">&larr; Workspaces</a>
+      <h1>{{ ws?.name ?? 'Cargando...' }}</h1>
+      @if (ws?.description) {
+        <p class="subtitle">{{ ws?.description }}</p>
+      }
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filters">
+      <button
+        class="pill"
+        [class.active]="!selectedType()"
+        (click)="filterByType(null)"
+      >Todos</button>
+      @for (t of docTypes(); track t.tag) {
+        <button
+          class="pill"
+          [class.active]="selectedType() === t.tag"
+          (click)="filterByType(t.tag)"
+        >{{ t.label }}</button>
+      }
+    </div>
+    <button class="btn btn-primary" (click)="startCreate()">+ Documento</button>
+  </div>
+
+  @if (showForm()) {
+    <div class="form-card">
+      <h3>Nuevo Documento</h3>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select [(ngModel)]="formDocType">
+          <option value="">Seleccionar tipo...</option>
+          @for (t of docTypes(); track t.tag) {
+            <option [value]="t.tag">{{ t.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Título</label>
+        <input type="text" [(ngModel)]="formTitle" placeholder="Título del documento" />
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" [disabled]="!formDocType" (click)="createDoc()">Crear</button>
+        <button class="btn btn-ghost" (click)="cancelForm()">Cancelar</button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading">Cargando...</div>
+  } @else if (documents().length === 0) {
+    <div class="empty">No hay documentos en este workspace.</div>
+  } @else {
+    <div class="doc-list">
+      @for (d of documents(); track d.uuid) {
+        <div class="doc-card" [routerLink]="['/documents', d.uuid]">
+          <div class="doc-info">
+            <h3>{{ d.title }}</h3>
+            <div class="doc-meta">
+              <span class="badge type-{{ d.doc_type.toLowerCase() }}">{{ docTypeLabel(d.doc_type) }}</span>
+              <span class="badge status-{{ d.doc_status.toLowerCase() }}">{{ docStatusLabel(d.doc_status) }}</span>
+              <span class="badge source">{{ d.source }}</span>
+              @if (d.is_dirty) {
+                <span class="badge dirty">modificado</span>
+              }
+            </div>
+          </div>
+          <div class="doc-actions" (click)="$event.stopPropagation()">
+            <button class="btn btn-sm btn-danger" (click)="deleteDoc(d.uuid)">Eliminar</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
