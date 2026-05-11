@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, signal } from '@angular/core';
+import { Router, RouterOutlet } from '@angular/router';
 import { SidebarComponent } from './components/sidebar/sidebar';
 
 @Component({
@@ -8,4 +8,10 @@ import { SidebarComponent } from './components/sidebar/sidebar';
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App {}
+export class App {
+  constructor(private router: Router) {}
+
+  get showSidebar(): boolean {
+    return !this.router.url.startsWith('/documents/')
+  }
+}

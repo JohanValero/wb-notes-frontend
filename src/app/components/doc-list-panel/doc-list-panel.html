@@ -1,0 +1,71 @@
+<div class="panel">
+  <div class="panel-header">
+    <a class="home-link" routerLink="/workspaces" title="Ir al inicio">
+      <span>&larr;</span> Workspaces
+    </a>
+    <button class="add-btn" (click)="startCreate()" title="Nuevo documento">+</button>
+  </div>
+
+  @if (showCreate()) {
+    <div class="create-form">
+      <select [(ngModel)]="formDocType">
+        <option value="">Tipo...</option>
+        @for (t of docTypes(); track t.tag) {
+          <option [value]="t.tag">{{ t.label }}</option>
+        }
+      </select>
+      <input type="text" [(ngModel)]="formTitle" placeholder="Título" />
+      <div class="form-actions">
+        <button class="btn btn-primary btn-sm" [disabled]="!formDocType" (click)="createDoc()">Crear</button>
+        <button class="btn btn-sm" (click)="cancelCreate()">Cancelar</button>
+      </div>
+    </div>
+  }
+
+  <div class="filters">
+    <button
+      class="pill"
+      [class.active]="!activeFilter()"
+      (click)="setFilter(null)"
+    >Todos</button>
+    @for (t of docTypes(); track t.tag) {
+      <button
+        class="pill"
+        [class.active]="activeFilter() === t.tag"
+        (click)="setFilter(t.tag)"
+      >{{ t.label }}</button>
+    }
+  </div>
+
+  <div class="doc-list">
+    @if (loading()) {
+      <div class="loading">Cargando...</div>
+    } @else if (documents().length === 0) {
+      <div class="empty">No hay documentos</div>
+    } @else {
+      @for (d of documents(); track d.uuid) {
+        <div
+          class="doc-item"
+          [class.active]="d.uuid === selectedDocUuid"
+          (click)="onSelect(d.uuid)"
+        >
+          <div class="doc-title">{{ d.title }}</div>
+          <div class="doc-meta">
+            <span class="badge type-{{ d.doc_type.toLowerCase() }}">{{ d.doc_type }}</span>
+            <span class="badge status-{{ d.doc_status.toLowerCase() }}">
+              @switch (d.doc_status) {
+                @case ('DRAFT') { Borrador }
+                @case ('ACTIVE') { Activo }
+                @case ('ABANDONED') { Abandonado }
+                @case ('ARCHIVED') { Archivado }
+              }
+            </span>
+            @if (d.is_dirty) {
+              <span class="badge dirty">modificado</span>
+            }
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

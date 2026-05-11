@@ -1,52 +1,128 @@
-<div class="page">
-  @let doc = document();
+<div class="layout">
+  <!-- Left panel -->
+  <div class="left-panel" [style.width.px]="panelWidth()" [class.is-collapsed]="panelCollapsed()">
+    <div class="panel-toggle" (click)="togglePanel()" [title]="panelCollapsed() ? 'Mostrar panel' : 'Ocultar panel'">
+      @if (panelCollapsed()) {
+        <span>&#9654;</span>
+      } @else {
+        <span>&#9664;</span>
+      }
+    </div>
+    @if (!panelCollapsed()) {
+      <app-doc-list-panel
+        [workspaceUuid]="workspaceUuid()"
+        [selectedDocUuid]="docUuid()"
+        (selectDoc)="onSelectDoc($event)"
+        (close)="togglePanel()"
+      />
+    }
+    <div
+      class="resize-handle"
+      [class.active]="isResizing"
+      (mousedown)="onResizeStart($event)"
+    ></div>
+  </div>
 
-  <div class="page-header">
-    <a class="back" [routerLink]="['/workspaces', doc?.workspace_uuid]">&larr; Volver al workspace</a>
-    <h1>{{ doc?.title ?? 'Cargando...' }}</h1>
-    @if (doc) {
-      <div class="doc-meta">
-        <span class="badge type-{{ doc.doc_type.toLowerCase() }}">{{ doc.doc_type }}</span>
-        <span class="badge status-{{ doc.doc_status.toLowerCase() }}">{{ docStatusLabel(doc.doc_status) }}</span>
-        <span class="badge source">{{ doc.source }}</span>
-        @if (doc.is_dirty) {
-          <span class="badge dirty">modificado</span>
+  <!-- Center: editor -->
+  <div class="center">
+    @let doc = document();
+
+    <div class="page-header">
+      <div class="header-top">
+        <h1>{{ doc?.title ?? 'Cargando...' }}</h1>
+        @if (doc) {
+          <div class="doc-meta">
+            <span class="badge type-{{ doc.doc_type.toLowerCase() }}">{{ doc.doc_type }}</span>
+            <span class="badge status-{{ doc.doc_status.toLowerCase() }}">{{ docStatusLabel(doc.doc_status) }}</span>
+            <span class="badge source">{{ doc.source }}</span>
+            @if (doc.is_dirty) {
+              <span class="badge dirty">modificado</span>
+            }
+          </div>
         }
       </div>
-      <div class="status-actions">
-        <span class="label">Estado:</span>
-        <button class="btn btn-sm" [class.active]="doc.doc_status === 'DRAFT'" (click)="changeStatus('DRAFT')">Borrador</button>
-        <button class="btn btn-sm" [class.active]="doc.doc_status === 'ACTIVE'" (click)="changeStatus('ACTIVE')">Activo</button>
-        <button class="btn btn-sm" [class.active]="doc.doc_status === 'ABANDONED'" (click)="changeStatus('ABANDONED')">Abandonado</button>
-        <button class="btn btn-sm" [class.active]="doc.doc_status === 'ARCHIVED'" (click)="changeStatus('ARCHIVED')">Archivado</button>
+      @if (doc) {
+        <div class="status-actions">
+          <span class="label">Estado:</span>
+          <button class="btn btn-sm" [class.active]="doc.doc_status === 'DRAFT'" (click)="changeStatus('DRAFT')">Borrador</button>
+          <button class="btn btn-sm" [class.active]="doc.doc_status === 'ACTIVE'" (click)="changeStatus('ACTIVE')">Activo</button>
+          <button class="btn btn-sm" [class.active]="doc.doc_status === 'ABANDONED'" (click)="changeStatus('ABANDONED')">Abandonado</button>
+          <button class="btn btn-sm" [class.active]="doc.doc_status === 'ARCHIVED'" (click)="changeStatus('ARCHIVED')">Archivado</button>
+        </div>
+      }
+    </div>
+
+    @if (loading()) {
+      <div class="loading">Cargando...</div>
+    } @else {
+      <div class="editor-wrapper">
+        <app-tiptap-editor
+          [content]="editorHtml()"
+          (contentChange)="onContentChange($event)"
+        />
+      </div>
+      <div class="editor-footer">
+        <span>{{ fragments().length }} párrafo{{ fragments().length !== 1 ? 's' : '' }}</span>
+        <span class="hint">Enter = nuevo párrafo | Shift+Enter = salto de línea</span>
       </div>
     }
   </div>
 
-  @if (loading()) {
-    <div class="loading">Cargando...</div>
-  } @else {
-    <div class="editor-section">
-      <div class="editor-toolbar">
-        <span class="editor-info">{{ fragments().length }} párrafo{{ fragments().length !== 1 ? 's' : '' }}</span>
-        @if (saved()) {
-          <span class="save-indicator saved">Guardado</span>
-        }
-        <button class="btn btn-primary btn-sm" [disabled]="saving()" (click)="saveDocument()">
-          @if (saving()) {
-            Guardando...
-          } @else {
-            Guardar cambios
-          }
-        </button>
+  <!-- Floating FAB toolbar (bottom-right) -->
+  <div class="fab-group">
+    @if (showFormatBar()) {
+      <div class="format-popup">
+        <button class="fmt-btn" [class.is-active]="isFmtActive('bold')" (click)="execFmt((c) => c.toggleBold())" title="Negrita"><strong>B</strong></button>
+        <button class="fmt-btn" [class.is-active]="isFmtActive('italic')" (click)="execFmt((c) => c.toggleItalic())" title="Cursiva"><em>I</em></button>
+        <button class="fmt-btn" [class.is-active]="isFmtActive('strike')" (click)="execFmt((c) => c.toggleStrike())" title="Tachado"><s>S</s></button>
+
+        <span class="fmt-sep"></span>
+
+        <button class="fmt-btn" [class.is-active]="isFmtActive('heading', { level: 1 })" (click)="execFmt((c) => c.toggleHeading({ level: 1 }))" title="Título 1">H1</button>
+        <button class="fmt-btn" [class.is-active]="isFmtActive('heading', { level: 2 })" (click)="execFmt((c) => c.toggleHeading({ level: 2 }))" title="Título 2">H2</button>
+        <button class="fmt-btn" [class.is-active]="isFmtActive('heading', { level: 3 })" (click)="execFmt((c) => c.toggleHeading({ level: 3 }))" title="Título 3">H3</button>
+
+        <span class="fmt-sep"></span>
+
+        <button class="fmt-btn" [class.is-active]="isFmtActive('bulletList')" (click)="execFmt((c) => c.toggleBulletList())" title="Lista">&#8226;</button>
+        <button class="fmt-btn" [class.is-active]="isFmtActive('orderedList')" (click)="execFmt((c) => c.toggleOrderedList())" title="Lista numerada">1.</button>
+        <button class="fmt-btn" [class.is-active]="isFmtActive('blockquote')" (click)="execFmt((c) => c.toggleBlockquote())" title="Cita">&ldquo;</button>
+        <button class="fmt-btn" [class.is-active]="isFmtActive('codeBlock')" (click)="execFmt((c) => c.toggleCodeBlock())" title="Código">&lt;/&gt;</button>
+
+        <span class="fmt-sep"></span>
+
+        <button class="fmt-btn" (click)="execFmt((c) => c.undo())" title="Deshacer">&#8630;</button>
+        <button class="fmt-btn" (click)="execFmt((c) => c.redo())" title="Rehacer">&#8631;</button>
       </div>
-      <app-tiptap-editor
-        [content]="editorHtml()"
-        (contentChange)="onContentChange($event)"
-      />
-      <div class="editor-footer">
-        <span class="editor-hint">Enter = nuevo párrafo | Shift+Enter = salto de línea</span>
-      </div>
+    }
+
+    <div class="fab-row">
+      <button
+        class="fab-btn save-fab"
+        [class.has-changes]="!saved()"
+        [disabled]="saving()"
+        (click)="saveDocument()"
+        title="Guardar"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+      </button>
+      <button
+        class="fab-btn opt-fab"
+        [class.is-open]="showFormatBar()"
+        (click)="toggleFormatBar()"
+        title="Opciones de formato"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+        </svg>
+      </button>
     </div>
-  }
+    @if (saved()) {
+      <span class="save-indicator">Guardado</span>
+    }
+  </div>
 </div>

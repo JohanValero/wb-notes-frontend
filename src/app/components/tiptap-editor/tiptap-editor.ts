@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, Input, Output, EventEmitter, AfterViewInit, OnDestroy } from '@angular/core'
+import { Component, ElementRef, ViewChild, Input, Output, EventEmitter, AfterViewInit, OnDestroy, OnChanges, SimpleChanges } from '@angular/core'
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -41,13 +41,22 @@ const CustomListItem = withId(ListItem)
   templateUrl: './tiptap-editor.html',
   styleUrl: './tiptap-editor.scss',
 })
-export class TiptapEditorComponent implements AfterViewInit, OnDestroy {
+export class TiptapEditorComponent implements AfterViewInit, OnDestroy, OnChanges {
   @ViewChild('editorEl') editorEl!: ElementRef
   @Input() content = ''
   @Input() placeholder = 'Escribe aquí...'
   @Output() contentChange = new EventEmitter<string>()
 
   editor!: Editor
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['content'] && this.editor) {
+      const newContent = changes['content'].currentValue
+      if (newContent !== this.editor.getHTML()) {
+        this.editor.commands.setContent(newContent)
+      }
+    }
+  }
 
   ngAfterViewInit() {
     this.editor = new Editor({
