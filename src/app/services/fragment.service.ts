@@ -11,8 +11,7 @@ export interface SyncResult {
 
 export interface SyncItem {
   content: string
-  content_hash?: string
-  position?: number
+  uuid?: string
 }
 
 @Injectable({ providedIn: 'root' })
