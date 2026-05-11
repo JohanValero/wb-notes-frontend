@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { TestBed } from '@angular/core/testing'
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
+import { TiptapEditorComponent } from './tiptap-editor'
 
 function createEditor(content: string): Editor {
   return new Editor({
@@ -80,5 +82,93 @@ describe('TiptapEditorComponent — HTML normalization', () => {
     ed2.destroy()
 
     expect(h1).toBe(h2)
+  })
+})
+
+describe('TiptapEditorComponent (Angular wrapper)', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [TiptapEditorComponent],
+    }).compileComponents()
+  })
+
+  it('creates the editor on afterViewInit', () => {
+    const fixture = TestBed.createComponent(TiptapEditorComponent)
+    fixture.detectChanges()
+    const comp = fixture.componentInstance
+    expect(comp.editor).toBeTruthy()
+    comp.ngOnDestroy()
+  })
+
+  it('emits contentChange when editor content updates', () => {
+    const fixture = TestBed.createComponent(TiptapEditorComponent)
+    fixture.detectChanges()
+    const comp = fixture.componentInstance
+    const spy = vi.fn()
+    comp.contentChange.subscribe(spy)
+
+    comp.editor.commands.setContent('<p>Updated</p>')
+
+    expect(spy).toHaveBeenCalled()
+    comp.ngOnDestroy()
+  })
+
+  it('updates editor content via ngOnChanges when content differs', () => {
+    const fixture = TestBed.createComponent(TiptapEditorComponent)
+    fixture.detectChanges()
+    const comp = fixture.componentInstance
+
+    comp.ngOnChanges({
+      content: {
+        currentValue: '<p>New Content</p>',
+        previousValue: '',
+        firstChange: false,
+        isFirstChange: () => false,
+      } as any,
+    })
+
+    expect(comp.editor.getHTML()).toContain('New Content')
+    comp.ngOnDestroy()
+  })
+
+  it('returns HTML via getHTML', () => {
+    const fixture = TestBed.createComponent(TiptapEditorComponent)
+    fixture.detectChanges()
+    const comp = fixture.componentInstance
+
+    expect(comp.getHTML()).toBeTypeOf('string')
+    comp.ngOnDestroy()
+  })
+
+  it('checks active state via isActive', () => {
+    const fixture = TestBed.createComponent(TiptapEditorComponent)
+    fixture.detectChanges()
+    const comp = fixture.componentInstance
+
+    expect(comp.isActive('paragraph')).toBeTypeOf('boolean')
+    comp.ngOnDestroy()
+  })
+
+  it('executes editor commands via exec', () => {
+    const fixture = TestBed.createComponent(TiptapEditorComponent)
+    fixture.detectChanges()
+    const comp = fixture.componentInstance
+
+    const spy = vi.fn().mockReturnValue({ run: vi.fn() })
+    comp.exec(spy)
+    expect(spy).toHaveBeenCalled()
+    comp.ngOnDestroy()
+  })
+
+  it('destroys editor on ngOnDestroy', () => {
+    const fixture = TestBed.createComponent(TiptapEditorComponent)
+    fixture.detectChanges()
+    const comp = fixture.componentInstance
+    const editor = comp.editor
+    vi.spyOn(editor, 'destroy')
+
+    comp.ngOnDestroy()
+
+    expect(editor.destroy).toHaveBeenCalled()
   })
 })

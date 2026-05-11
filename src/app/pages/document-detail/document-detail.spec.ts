@@ -1,5 +1,12 @@
-import { describe, it, expect } from 'vitest'
-import { extractBlocks, injectUuid } from './document-detail'
+import { describe, it, expect, vi } from 'vitest'
+import { TestBed } from '@angular/core/testing'
+import { provideRouter, ActivatedRoute, Router } from '@angular/router'
+import { NO_ERRORS_SCHEMA } from '@angular/core'
+import { of, Subject } from 'rxjs'
+import { extractBlocks, injectUuid, DocumentDetailComponent } from './document-detail'
+import { DocumentService } from '../../services/document.service'
+import { FragmentService } from '../../services/fragment.service'
+import { Document } from '../../models/document.model'
 
 describe('injectUuid', () => {
   it('injects id into simple <p> tag', () => {
@@ -123,5 +130,188 @@ describe('extractBlocks', () => {
     expect(items).toEqual([
       { uuid: 'x', content: '<h2>Hello</h2>' },
     ])
+  })
+})
+
+describe('DocumentDetailComponent', () => {
+  let mockDocumentService: { get: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; list: ReturnType<typeof vi.fn>; listTypes: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> }
+  let mockFragmentService: { list: ReturnType<typeof vi.fn>; sync: ReturnType<typeof vi.fn> }
+
+  const mockDoc: Document = {
+    uuid: 'doc-1',
+    workspace_uuid: 'ws-1',
+    doc_type: 'NOVEL',
+    title: 'Test Doc',
+    doc_status: 'DRAFT',
+    source: 'manual',
+    is_dirty: false,
+    metadata: null,
+    created_t: '2024-01-01',
+    updated_t: '2024-01-01',
+  }
+
+  function createComponent(routeId = 'doc-1') {
+    mockDocumentService = { get: vi.fn(), update: vi.fn(), list: vi.fn(), listTypes: vi.fn(), create: vi.fn(), delete: vi.fn() }
+    mockFragmentService = { list: vi.fn(), sync: vi.fn() }
+
+    TestBed.configureTestingModule({
+      imports: [DocumentDetailComponent],
+      providers: [
+        { provide: DocumentService, useValue: mockDocumentService },
+        { provide: FragmentService, useValue: mockFragmentService },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { paramMap: { get: () => routeId } },
+            paramMap: of({ get: () => routeId }),
+          },
+        },
+        provideRouter([]),
+      ],
+      schemas: [NO_ERRORS_SCHEMA],
+    })
+    return TestBed.createComponent(DocumentDetailComponent)
+  }
+
+  it('loads document and fragments on init', () => {
+    const fixture = createComponent()
+    mockDocumentService.get.mockReturnValue(of(mockDoc))
+    mockDocumentService.listTypes.mockReturnValue(of([]))
+    mockDocumentService.list.mockReturnValue(of([]))
+    mockFragmentService.list.mockReturnValue(of([
+      { uuid: 'f1', content: '<p>Hello</p>', position: 0, document_uuid: 'doc-1', workspace_uuid: 'ws-1', content_hash: '', is_dirty: false, created_t: '', updated_t: '' },
+    ]))
+    fixture.detectChanges()
+    const comp = fixture.componentInstance
+    expect(comp.document()).toEqual(mockDoc)
+    expect(comp.fragments()).toHaveLength(1)
+    expect(comp.loading()).toBe(false)
+  })
+
+  it('calls fragmentService.sync on saveDocument', () => {
+    const syncSubject = new Subject()
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+    mockFragmentService.list.mockReturnValue(of([]))
+    mockFragmentService.sync.mockReturnValue(syncSubject)
+    comp.editorHtml.set('<p>Hello</p>')
+    comp.document.set(mockDoc)
+
+    comp.saveDocument()
+
+    expect(comp.saving()).toBe(true)
+    expect(mockFragmentService.sync).toHaveBeenCalled()
+
+    syncSubject.next({ updated: [], created: [], deleted: [] })
+    syncSubject.complete()
+  })
+
+  it('calls documentService.update on changeStatus', () => {
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+    mockDocumentService.update.mockReturnValue(of(mockDoc))
+    comp.document.set(mockDoc)
+
+    comp.changeStatus('ACTIVE')
+
+    expect(mockDocumentService.update).toHaveBeenCalledWith('doc-1', { doc_status: 'ACTIVE' })
+  })
+
+  it('updates editorHtml and saved flag onContentChange', () => {
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+    comp.saved.set(true)
+
+    comp.onContentChange('<p>Updated</p>')
+
+    expect(comp.editorHtml()).toBe('<p>Updated</p>')
+    expect(comp.saved()).toBe(false)
+  })
+
+  it('toggles panel collapsed', () => {
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+    comp.panelCollapsed.set(false)
+
+    comp.togglePanel()
+    expect(comp.panelCollapsed()).toBe(true)
+
+    comp.togglePanel()
+    expect(comp.panelCollapsed()).toBe(false)
+  })
+
+  it('toggles format bar', () => {
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+    comp.toggleFormatBar()
+    expect(comp.showFormatBar()).toBe(true)
+
+    comp.toggleFormatBar()
+    expect(comp.showFormatBar()).toBe(false)
+  })
+
+  it('toggles chat', () => {
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+    comp.toggleChat()
+    expect(comp.chatOpen()).toBe(true)
+
+    comp.toggleChat()
+    expect(comp.chatOpen()).toBe(false)
+  })
+
+  it('navigates on onSelectDoc to different doc', () => {
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+    const router = TestBed.inject(Router)
+    vi.spyOn(router, 'navigate')
+
+    comp.docUuid.set('current')
+    comp.onSelectDoc('new-doc')
+
+    expect(router.navigate).toHaveBeenCalledWith(['/documents', 'new-doc'])
+  })
+
+  it('ignores onSelectDoc when same doc', () => {
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+    const router = TestBed.inject(Router)
+    vi.spyOn(router, 'navigate')
+
+    const uuid = 'same-doc'
+    comp.docUuid.set(uuid)
+    comp.onSelectDoc(uuid)
+
+    expect(router.navigate).not.toHaveBeenCalled()
+  })
+
+  it('handles panel resize', () => {
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+
+    comp.onResizeStart(new MouseEvent('mousedown', { clientX: 400 }))
+    expect(comp.isResizing).toBe(true)
+
+    comp.onMouseMove(new MouseEvent('mousemove', { clientX: 350 }))
+    expect(comp.panelWidth()).toBe(350)
+
+    comp.onMouseMove(new MouseEvent('mousemove', { clientX: 100 }))
+    expect(comp.panelWidth()).toBe(220)
+
+    comp.onMouseMove(new MouseEvent('mousemove', { clientX: 600 }))
+    expect(comp.panelWidth()).toBe(500)
+
+    comp.onMouseUp()
+    expect(comp.isResizing).toBe(false)
+  })
+
+  it('maps doc status labels', () => {
+    const fixture = createComponent()
+    const comp = fixture.componentInstance
+    expect(comp.docStatusLabel('DRAFT')).toBe('Borrador')
+    expect(comp.docStatusLabel('ACTIVE')).toBe('Activo')
+    expect(comp.docStatusLabel('ABANDONED')).toBe('Abandonado')
+    expect(comp.docStatusLabel('ARCHIVED')).toBe('Archivado')
+    expect(comp.docStatusLabel('UNKNOWN')).toBe('UNKNOWN')
   })
 })
