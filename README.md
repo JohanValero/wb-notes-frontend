@@ -1,59 +1,52 @@
 # WbNotesFrontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.10.
+Frontend Angular para **GraphRAG Novelas API** — editor de novelas con grafo documental y chat con IA.
 
-## Development server
+## Stack
 
-To start a local development server, run:
+- **Angular 21** standalone components (`bootstrapApplication`, sin NgModules)
+- **SCSS** — estilos
+- **Vitest** — tests unitarios (via `@angular/build:unit-test`)
+- **Prettier** — printWidth 100, singleQuote, parser `angular` para HTML
+- **TypeScript** strict, `module: "preserve"`, target ES2022
 
-```bash
-ng serve
-```
+## Requisitos
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+El backend debe estar corriendo en `http://localhost:8000`. El proxy (`proxy.conf.json`) redirige `/api` → `http://localhost:8000` durante desarrollo.
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Comandos
 
 ```bash
-ng generate --help
+npm start        # ng serve --host 0.0.0.0 (puerto 4200)
+ng serve         # sin --host (solo localhost)
+ng test          # tests Vitest
+ng build         # build producción → dist/
 ```
 
-## Building
+## Rutas
 
-To build the project run:
+| Path | Componente |
+|------|-----------|
+| `/` | Redirige a `/workspaces` |
+| `/workspaces` | `WorkspaceListComponent` |
+| `/workspaces/:id` | `WorkspaceDetailComponent` |
+| `/documents/:id` | `DocumentDetailComponent` |
+| `/relations` | `RelationViewComponent` |
 
-```bash
-ng build
+## Estructura
+
 ```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
+src/
+├── app/
+│   ├── components/       # Sidebar, chat-panel, tiptap-editor, doc-list-panel
+│   ├── pages/            # 4 páginas (workspace-list, workspace-detail, document-detail, relation-view)
+│   ├── services/          # HTTP services (workspace, document, fragment, relation, chat)
+│   ├── models/           # Interfaces TypeScript
+│   ├── pipes/            # Pipes Angular
+│   ├── app.ts            # Componente raíz
+│   ├── app.config.ts     # ApplicationConfig providers
+│   └── app.routes.ts     # Definición de rutas
+├── index.html
+├── main.ts               # bootstrapApplication
+└── styles.scss
 ```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
